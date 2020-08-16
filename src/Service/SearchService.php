@@ -26,28 +26,28 @@ class SearchService
             case "hddMin":
                 return $servers->filter(
                     function($server) use ($value) {
-                        return $server->getHddSize() >= $value;
+                        return ($value != '') ? $server->getHddSize() >= $value : $server;
                     }
                 )->getValues();
               break;
             case "hddMax":
                 return $servers->filter(
                     function($server) use ($value) {
-                        return $server->getHddSize() <= $value;
+                        return ($value != '') ? $server->getHddSize() <= $value : $server;
                     }
                 )->getValues();
               break;
             case "hddType":
                 return $servers->filter(
                     function($server) use ($value) {
-                        return $server->getHddType() == $value;
+                        return ($value != '') ? $server->getHddType() == $value : $server;
                     }
                 )->getValues();
               break;
             case "location":
                 return $servers->filter(
                     function($server) use ($value) {
-                        return $server->getLocation() == $value;
+                        return ($value != '') ? $server->getLocation() == $value : $server;
                     }
                 )->getValues();
                 break;
@@ -55,7 +55,7 @@ class SearchService
                 return $servers->filter(
                     function($server) use ($value) {
                         $data = explode(',', $value);
-                        return in_array($server->getRam(), $data);
+                        return ($value != '') ? in_array($server->getRam(), $data) : $server;
                     }
                 )->getValues();
                 break;

@@ -7,37 +7,36 @@ use ApiPlatform\Core\DataProvider\RestrictedDataProviderInterface;
 use ApiPlatform\Core\Exception\ResourceClassNotSupportedException;
 use App\Entity\Server;
 use Symfony\Component\HttpFoundation\RequestStack;
-use Pagerfanta\Doctrine\Collections\CollectionAdapter;
 use Doctrine\Common\Collections\ArrayCollection;
 use ApiPlatform\Core\Metadata\Resource\Factory\ResourceMetadataFactoryInterface;
 use App\Data\PrepareData;
 use App\Service\SearchService;
+use Symfony\Component\HttpKernel\KernelInterface;
+use ApiPlatform\Core\DataProvider\ArrayPaginator;
 
 final class SpreadSheetDataProvider implements CollectionDataProviderInterface, RestrictedDataProviderInterface
 {
     private $requestStack;
     private $resourceMetadataFactory;
-    private $itemsPerPageParameter;
-    private $globalItemsPerPage;
     private $pageParameter;
     private $prepareData;
     private $searchService;
+    /** KernelInterface $appKernel */
+    private $appKernel;
 
     public function __construct(
             SearchService $searchService,
             RequestStack $requestStack,
             ResourceMetadataFactoryInterface $resourceMetadataFactory,
-            int $itemsPerPage = 10,
-            int $globalItemsPerPage = 10,
-            PrepareData $prepareData)
+            PrepareData $prepareData,
+            KernelInterface $appKernel)
     {
         $this->requestStack = $requestStack;
         $this->resourceMetadataFactory = $resourceMetadataFactory;
-        $this->itemsPerPageParameter = $itemsPerPage;
-        $this->globalItemsPerPage = $globalItemsPerPage;
         $this->pageParameter = "_page";
         $this->prepareData = $prepareData;
         $this->searchService = $searchService;
+        $this->appKernel = $appKernel;
     }
 
     public function supports(string $resourceClass, string $operationName = null, array $context = []): bool
@@ -57,12 +56,14 @@ final class SpreadSheetDataProvider implements CollectionDataProviderInterface, 
         if(!$this->supports($resourceClass)) {
             throw new ResourceClassNotSupportedException();
         }
-
+        
         $request = $this->requestStack->getCurrentRequest();
         
         $serverData = new ArrayCollection();
+        
+        $projDirectory = $this->appKernel->getProjectDir();
 
-        if ( $xlsx = \SimpleXLSX::parse('../src/Data/a.xlsx') ) {
+        if ( $xlsx = \SimpleXLSX::parse($projDirectory.'/src/Data/a.xlsx') ) {
             foreach($xlsx->rows() as $i => $server){
                 $hddData = $this->prepareData->prepareHddData($server[3]);
                 $ramData = $this->prepareData->prepareRamData($server[2]);
@@ -85,32 +86,9 @@ final class SpreadSheetDataProvider implements CollectionDataProviderInterface, 
             echo \SimpleXLSX::parseError();
         }
         
-        $adapter = new CollectionAdapter($serverData);
-        $pagerfanta = new \App\Pagination\Pagerfanta($adapter);
-
-        $resourceMetadata = $this->resourceMetadataFactory->create($resourceClass);
-
-        $pagerfanta->setMaxPerPage(
-            (int) $request->get(
-                $this->itemsPerPageParameter,
-                $resourceMetadata->getCollectionOperationAttribute(
-                    $operationName,
-                    'pagination_items_per_page',
-                    $this->globalItemsPerPage,
-                    true
-                )
-            )
-        );
-
-        $pagerfanta->setCurrentPage((int) $request->get($this->pageParameter, 1));
-        
-        $response = [
-            'total' => $pagerfanta->getNbResults(),
-            'currentPage' => $pagerfanta->getCurrentPage(),
-            'itemsPerPage' => $this->globalItemsPerPage,
-            'servers' => $this->toArray($pagerfanta),
-        ];
-        return $response;
+        $page = $request->get('_page');
+        $firstResult = ($page && $page != 1) ? (($page-1)*10): 0;
+        return new ArrayPaginator($this->toArray($serverData),$firstResult,10);
     }
     
     public function toArray($data) {

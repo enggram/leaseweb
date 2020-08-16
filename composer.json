@@ -10,7 +10,6 @@
         "doctrine/doctrine-bundle": "^1.6 || ^2.0",
         "doctrine/orm": "^2.4.5",
         "nelmio/cors-bundle": "^1.5 || ^2.0",
-        "pagerfanta/pagerfanta": "^2.4",
         "phpdocumentor/reflection-docblock": "^3.0 || ^4.0 || ^5.0",
         "shuchkin/simplexlsx": "^0.8.18",
         "symfony/asset": "4.4.*",

@@ -33,7 +33,8 @@ use Symfony\Component\Serializer\Annotation\Groups;
  *      },
  *      itemOperations={"get"={"method"="GET"}},
  *      attributes={
- *          "pagination_items_per_page"=10
+ *          "pagination_items_per_page"=10,
+ *          "pagination_enabled"=true
  *      }
  * )
  * @ApiFilter(SearchFilter::class, properties={"ram": "partial"})
