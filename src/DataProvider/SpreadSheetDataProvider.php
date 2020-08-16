@@ -11,6 +11,7 @@ use Pagerfanta\Doctrine\Collections\CollectionAdapter;
 use Doctrine\Common\Collections\ArrayCollection;
 use ApiPlatform\Core\Metadata\Resource\Factory\ResourceMetadataFactoryInterface;
 use App\Data\PrepareData;
+use App\Service\SearchService;
 
 final class SpreadSheetDataProvider implements CollectionDataProviderInterface, RestrictedDataProviderInterface
 {
@@ -20,8 +21,10 @@ final class SpreadSheetDataProvider implements CollectionDataProviderInterface, 
     private $globalItemsPerPage;
     private $pageParameter;
     private $prepareData;
+    private $searchService;
 
     public function __construct(
+            SearchService $searchService,
             RequestStack $requestStack,
             ResourceMetadataFactoryInterface $resourceMetadataFactory,
             int $itemsPerPage = 10,
@@ -34,6 +37,7 @@ final class SpreadSheetDataProvider implements CollectionDataProviderInterface, 
         $this->globalItemsPerPage = $globalItemsPerPage;
         $this->pageParameter = "_page";
         $this->prepareData = $prepareData;
+        $this->searchService = $searchService;
     }
 
     public function supports(string $resourceClass, string $operationName = null, array $context = []): bool
@@ -41,6 +45,13 @@ final class SpreadSheetDataProvider implements CollectionDataProviderInterface, 
         return Server::class === $resourceClass;
     }
 
+    /**
+     * Return the server collection response api from excel sheet
+     * @param string $resourceClass
+     * @param string $operationName
+     * @return type
+     * @throws ResourceClassNotSupportedException
+     */
     public function getCollection(string $resourceClass, string $operationName = null)
     {
         if(!$this->supports($resourceClass)) {
@@ -51,7 +62,7 @@ final class SpreadSheetDataProvider implements CollectionDataProviderInterface, 
         
         $serverData = new ArrayCollection();
 
-        if ( $xlsx = \SimpleXLSX::parse('../../src/Data/a.xlsx') ) {
+        if ( $xlsx = \SimpleXLSX::parse('../src/Data/a.xlsx') ) {
             foreach($xlsx->rows() as $i => $server){
                 $hddData = $this->prepareData->prepareHddData($server[3]);
                 $ramData = $this->prepareData->prepareRamData($server[2]);
@@ -60,6 +71,16 @@ final class SpreadSheetDataProvider implements CollectionDataProviderInterface, 
                 $serverData->add($servers);
             }
             
+            if(!empty($request->query->all()))
+            {
+                foreach ($request->query->all() as $filter => $value) {
+                    $serverData = $this->searchService->filter($filter, $value, $serverData);
+                    if(is_array($serverData)){
+                        $serverData = new ArrayCollection($serverData);
+                    }
+                }
+            }
+
         }else{
             echo \SimpleXLSX::parseError();
         }
