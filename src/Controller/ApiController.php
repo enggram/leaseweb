@@ -37,7 +37,6 @@ class ApiController
         $location = [];
         $ram = [];
         $hddType = [];
-        $hddSize = [];
         
         if ( $xlsx = \SimpleXLSX::parse('../src/Data/a.xlsx') ) {
             foreach($xlsx->rows() as $i => $server){
