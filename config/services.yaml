@@ -27,7 +27,7 @@ services:
         resource: '../src/Controller/'
         tags: ['controller.service_arguments']
 
-    'App\DataProvider\SpreadSheetDataProvider':
+    'App\DataProvider\CustomDataProvider':
         tags: [ { name: 'api_platform.collection_data_provider', priority: 2 } ]
         # Autoconfiguration must be disabled to set a custom priority
         autoconfigure: false     
